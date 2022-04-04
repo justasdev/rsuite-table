@@ -171,6 +171,10 @@ const useScrollListener = (props: ScrollListenerProps) => {
       const nextScrollX = contentWidth.current <= tableWidth.current ? 0 : scrollX.current - deltaX;
       const nextScrollY = scrollY.current - deltaY;
 
+      // const y = Math.max(
+      //   -606,
+      //   Math.min(0, nextScrollY < minScrollY.current ? minScrollY.current : nextScrollY)
+      // );
       const y = Math.min(0, nextScrollY < minScrollY.current ? minScrollY.current : nextScrollY);
       const x = Math.min(0, nextScrollX < minScrollX.current ? minScrollX.current : nextScrollX);
 
@@ -406,7 +410,6 @@ const useScrollListener = (props: ScrollListenerProps) => {
 
   const onScrollTop = (top = 0) => {
     const [nextScrollY, handleScrollY] = getControlledScrollTopValue(top);
-    const height = getTableHeight();
 
     setScrollY(nextScrollY);
     scrollbarYRef?.current?.resetScrollBarPosition?.(handleScrollY);

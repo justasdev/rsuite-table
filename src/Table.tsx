@@ -66,17 +66,8 @@ const filterTreeData = (data: any[], expandedRowKeys: RowKeyType[], rowKey?: Row
 };
 
 export interface TableProps extends Omit<StandardProps, 'onScroll'> {
-  /**
-   * The height of the table will be automatically expanded according to the number of data rows,
-   * and no vertical scroll bar will appear
-   * */
+  /** Automatic Height */
   autoHeight?: boolean;
-
-  /**
-   * Force the height of the table to be equal to the height of its parent container.
-   * Cannot be used together with autoHeight.
-   */
-  fillHeight?: boolean;
 
   /** Affix the table header to the specified position on the page */
   affixHeader?: boolean | number;
@@ -103,7 +94,7 @@ export interface TableProps extends Omit<StandardProps, 'onScroll'> {
   defaultExpandedRowKeys?: RowKeyType[];
 
   /** Table data */
-  data?: RowDataType[];
+  data: RowDataType[];
 
   /** Specify the default expanded row by  rowkey (Controlled) */
   expandedRowKeys?: RowKeyType[];
@@ -236,6 +227,8 @@ export interface TableProps extends Omit<StandardProps, 'onScroll'> {
    * @deprecated use `ref` instead (see `ref.current.body`)
    **/
   bodyRef?: (ref: HTMLElement) => void;
+
+  footerHeight?: number;
 }
 
 interface TableRowProps extends RowProps {
@@ -277,7 +270,6 @@ const Table = React.forwardRef((props: TableProps, ref) => {
     minHeight = 0,
     height = 200,
     autoHeight,
-    fillHeight,
     rtl: rtlProp,
     translate3d = true,
     rowKey,
@@ -301,6 +293,7 @@ const Table = React.forwardRef((props: TableProps, ref) => {
     onTouchStart,
     onTouchMove,
     onTouchEnd,
+    footerHeight = 0,
     ...rest
   } = props;
 
@@ -354,6 +347,7 @@ const Table = React.forwardRef((props: TableProps, ref) => {
   const mouseAreaRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
   const tableHeaderRef = useRef<HTMLDivElement>(null);
+  const tableFooterRef = useRef<HTMLDivElement>(null);
   const affixHeaderWrapperRef = useRef<HTMLDivElement>(null);
   const headerWrapperRef = useRef<HTMLDivElement>(null);
   const tableBodyRef = useRef<HTMLDivElement>(null);
@@ -386,8 +380,7 @@ const Table = React.forwardRef((props: TableProps, ref) => {
     tableOffset,
     headerOffset,
     setScrollY,
-    setScrollX,
-    getTableHeight
+    setScrollX
   } = useTableDimension({
     data: dataProp,
     width: widthProp,
@@ -399,9 +392,7 @@ const Table = React.forwardRef((props: TableProps, ref) => {
     affixHorizontalScrollbar,
     headerHeight,
     height,
-    minHeight,
     autoHeight,
-    fillHeight,
     children,
     expandedRowKeys,
     onTableScroll: (coords: { x?: number; y?: number }) => {
@@ -418,8 +409,18 @@ const Table = React.forwardRef((props: TableProps, ref) => {
     }
   });
 
+  const getTableHeight = useCallback(() => {
+    if (data.length === 0 && autoHeight) {
+      return height;
+    }
+
+    return autoHeight
+      ? Math.max(headerHeight + contentHeight.current + footerHeight, minHeight)
+      : height;
+  }, [autoHeight, contentHeight, data.length, headerHeight, height, minHeight]);
+
   useAffix({
-    getTableHeight,
+    tableHeight: getTableHeight,
     contentHeight,
     affixHorizontalScrollbar,
     affixHeader,
@@ -485,23 +486,25 @@ const Table = React.forwardRef((props: TableProps, ref) => {
     onTouchEnd
   });
 
-  const { headerCells, bodyCells, allColumnsWidth, hasCustomTreeCol } = useCellDescriptor({
-    children,
-    rtl,
-    mouseAreaRef,
-    tableRef,
-    minScrollX,
-    scrollX,
-    tableWidth,
-    headerHeight,
-    showHeader,
-    sortType: sortTypeProp,
-    defaultSortType,
-    sortColumn,
-    prefix,
-    onSortColumn,
-    rowHeight
-  });
+  const { headerCells, footerCells, bodyCells, allColumnsWidth, hasCustomTreeCol } =
+    useCellDescriptor({
+      children,
+      rtl,
+      mouseAreaRef,
+      tableRef,
+      minScrollX,
+      scrollX,
+      tableWidth,
+      headerHeight,
+      showHeader,
+      showFooter: !!footerHeight,
+      sortType: sortTypeProp,
+      defaultSortType,
+      sortColumn,
+      prefix,
+      onSortColumn,
+      rowHeight
+    });
 
   const colCounts = useRef(headerCells?.length || 0);
 
@@ -575,6 +578,11 @@ const Table = React.forwardRef((props: TableProps, ref) => {
       restRowProps.className = rowClassName(rowData);
     } else {
       restRowProps.className = rowClassName;
+    }
+    if (props.className) {
+      restRowProps.className = [restRowProps.className, props.className]
+        .filter(cls => !!cls)
+        .join(' ');
     }
 
     const rowStyles: React.CSSProperties = {
@@ -828,14 +836,29 @@ const Table = React.forwardRef((props: TableProps, ref) => {
     return renderRow(rowProps, cells, shouldRenderExpandedRow, rowData);
   };
 
-  const renderScrollbar = () => {
+  const renderVerticalScrollbar = () => {
     const height = getTableHeight();
-
     if (disabledScroll) {
       return null;
     }
+    return (
+      <Scrollbar
+        key="vertical-scrollbar"
+        vertical
+        tableId={id}
+        length={height - headerHeight - footerHeight}
+        scrollLength={contentHeight.current + footerHeight}
+        onScroll={onScrollVertical}
+        ref={scrollbarYRef}
+      />
+    );
+  };
 
-    return [
+  const renderHorizontalScrollbar = () => {
+    if (disabledScroll) {
+      return null;
+    }
+    return (
       <Scrollbar
         key="scrollbar"
         tableId={id}
@@ -844,17 +867,8 @@ const Table = React.forwardRef((props: TableProps, ref) => {
         onScroll={onScrollHorizontal}
         scrollLength={contentWidth.current}
         ref={scrollbarXRef}
-      />,
-      <Scrollbar
-        key="vertical-scrollbar"
-        vertical
-        tableId={id}
-        length={height - headerHeight}
-        scrollLength={contentHeight.current}
-        onScroll={onScrollVertical}
-        ref={scrollbarYRef}
       />
-    ];
+    );
   };
 
   const renderTableBody = (bodyCells: any[], rowWidth: number) => {
@@ -998,7 +1012,7 @@ const Table = React.forwardRef((props: TableProps, ref) => {
           addPrefix={prefix}
           loading={!!visibleRows.current?.length || loading}
         />
-        {renderScrollbar()}
+        {renderVerticalScrollbar()}
         <Loader
           locale={locale}
           loadAnimation={loadAnimation}
@@ -1021,6 +1035,25 @@ const Table = React.forwardRef((props: TableProps, ref) => {
     [hasCustomTreeCol, isTree, rtl, withClassPrefix]
   );
 
+  const footer = !!footerHeight
+    ? renderRow(
+        {
+          rowRef: tableFooterRef,
+          className: prefix('footer-cell'),
+          style: {
+            height: footerHeight,
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            top: 'initial',
+            backgroundColor: 'black'
+          }
+        },
+        footerCells
+      )
+    : null;
+
   return (
     <TableContext.Provider value={contextValue}>
       <div
@@ -1037,6 +1070,8 @@ const Table = React.forwardRef((props: TableProps, ref) => {
       >
         {showHeader && renderTableHeader(headerCells, rowWidth)}
         {children && renderTableBody(bodyCells, rowWidth)}
+        {renderHorizontalScrollbar()}
+        {footer}
         {showHeader && (
           <MouseArea
             ref={mouseAreaRef}
@@ -1053,7 +1088,6 @@ const Table = React.forwardRef((props: TableProps, ref) => {
 Table.displayName = 'Table';
 Table.propTypes = {
   autoHeight: PropTypes.bool,
-  fillHeight: PropTypes.bool,
   affixHeader: PropTypes.oneOfType([PropTypes.bool, PropTypes.number]),
   affixHorizontalScrollbar: PropTypes.oneOfType([PropTypes.bool, PropTypes.number]),
   bordered: PropTypes.bool,
@@ -1061,7 +1095,7 @@ Table.propTypes = {
   classPrefix: PropTypes.string,
   children: PropTypes.any,
   cellBordered: PropTypes.bool,
-  data: PropTypes.array,
+  data: PropTypes.array.isRequired,
   defaultExpandAllRows: PropTypes.bool,
   defaultExpandedRowKeys: PropTypes.array,
   defaultSortType: PropTypes.any,
