@@ -211,6 +211,8 @@ const useTableDimension = (props: TableDimensionProps) => {
         calculateTableWidth(entries[0].contentRect.width);
       });
       containerResizeObserver.current.observe(tableRef?.current?.parentNode?.parentNode as Element);
+      // Table size won't change without watching window resize events as well if parent has percentage height
+      containerResizeObserver.current.observe(window.document.body);
     } else {
       resizeObserver.current = new ResizeObserver(entries => {
         calculateTableWidth(entries[0].contentRect.width);
