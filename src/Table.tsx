@@ -846,10 +846,11 @@ const Table = React.forwardRef((props: TableProps, ref) => {
         key="vertical-scrollbar"
         vertical
         tableId={id}
-        length={height - headerHeight - footerHeight}
-        scrollLength={contentHeight.current + footerHeight}
+        length={height - headerHeight}
+        scrollLength={contentHeight.current}
         onScroll={onScrollVertical}
         ref={scrollbarYRef}
+        style={footerHeight ? { bottom: footerHeight + SCROLLBAR_WIDTH } : undefined}
       />
     );
   };
