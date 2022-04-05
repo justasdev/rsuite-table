@@ -504,6 +504,7 @@ const Table = React.forwardRef((props: TableProps, ref) => {
       headerHeight,
       showHeader,
       showFooter: !!footerHeight,
+      footerHeight,
       sortType: sortTypeProp,
       defaultSortType,
       sortColumn,
@@ -1043,7 +1044,8 @@ const Table = React.forwardRef((props: TableProps, ref) => {
       ? renderRow(
           {
             rowRef: tableFooterRef,
-            className: prefix('footer-cell')
+            isFooterRow: true,
+            height: footerHeight
           },
           footerCells
         )

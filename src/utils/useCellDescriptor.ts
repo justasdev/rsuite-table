@@ -20,6 +20,7 @@ interface CellDescriptorProps {
   scrollX: React.MutableRefObject<number>;
   tableWidth: React.MutableRefObject<number>;
   headerHeight: number;
+  footerHeight?: number;
   showHeader: boolean;
   showFooter: boolean;
   sortType?: SortType;
@@ -56,6 +57,7 @@ const useCellDescriptor = (props: CellDescriptorProps): CellDescriptor => {
     scrollX,
     tableWidth,
     headerHeight,
+    footerHeight = 0,
     showHeader,
     showFooter,
     sortType: sortTypeProp,
@@ -258,6 +260,8 @@ const useCellDescriptor = (props: CellDescriptorProps): CellDescriptor => {
             ...cellProps,
             ...{
               index,
+              isFooterCell: true,
+              footerHeight,
               dataKey: cell.props.dataKey,
               minWidth: column.props.minWidth,
               sortColumn,
