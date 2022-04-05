@@ -156,8 +156,7 @@ const useTableDimension = (props: TableDimensionProps) => {
 
     // The value of SCROLLBAR_WIDTH is subtracted so that the scroll bar does not block the content part.
     // There is no vertical scroll bar after autoHeight.
-    minScrollX.current =
-      -(nextContentWidth - tableWidth.current) - (autoHeight ? 0 : SCROLLBAR_WIDTH);
+    minScrollX.current = -(nextContentWidth - tableWidth.current);
 
     /**
      * If the width of the content area and the number of columns change,
