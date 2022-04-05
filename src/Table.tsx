@@ -392,7 +392,8 @@ const Table = React.forwardRef((props: TableProps, ref) => {
     headerOffset,
     setScrollY,
     setScrollX,
-    getTableHeight
+    getTableHeight,
+    emptySpaceBelow
   } = useTableDimension({
     data: dataProp,
     width: widthProp,
@@ -866,7 +867,7 @@ const Table = React.forwardRef((props: TableProps, ref) => {
       <Scrollbar
         key="scrollbar"
         tableId={id}
-        style={{ width: tableWidth.current }}
+        style={{ width: tableWidth.current, bottom: emptySpaceBelow }}
         length={tableWidth.current}
         onScroll={onScrollHorizontal}
         scrollLength={contentWidth.current}
@@ -1061,7 +1062,7 @@ const Table = React.forwardRef((props: TableProps, ref) => {
           borderTop: '1px solid black',
           minWidth: width,
           position: 'absolute',
-          bottom: 0,
+          bottom: emptySpaceBelow,
           top: 'initial',
           backgroundColor: 'black'
         }}

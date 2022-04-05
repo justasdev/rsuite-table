@@ -76,7 +76,9 @@ const useTableDimension = (props: TableDimensionProps) => {
   const tableOffset = useRef<ElementOffset | null>(null);
 
   const [tableHeight, setTableHeight] = useState(heightProp || 0);
+  const [emptySpaceBelow, setEmptySpaceBelow] = useState(0);
   const tableHeightWithoutFooter = tableHeight - footerHeight;
+
   const calculateTableContextHeight = useCallback(() => {
     const prevContentHeight = contentHeight.current;
     const table = tableRef?.current;
@@ -106,6 +108,9 @@ const useTableDimension = (props: TableDimensionProps) => {
     // If the height of the content area is less than the height of the table, the vertical scroll bar is reset.
     if (nextContentHeight < tableHeightWithoutFooter) {
       onTableScroll?.({ y: 0 });
+      setEmptySpaceBelow(tableHeightWithoutFooter - nextContentHeight);
+    } else if (emptySpaceBelow > 0) {
+      setEmptySpaceBelow(0);
     }
 
     // If the value of scrollTop is greater than the scrollable range, the vertical scroll bar is reset.
@@ -267,7 +272,8 @@ const useTableDimension = (props: TableDimensionProps) => {
     tableOffset,
     getTableHeight,
     setScrollY,
-    setScrollX
+    setScrollX,
+    emptySpaceBelow
   };
 };
 
