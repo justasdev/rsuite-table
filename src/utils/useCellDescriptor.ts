@@ -21,6 +21,7 @@ interface CellDescriptorProps {
   tableWidth: React.MutableRefObject<number>;
   headerHeight: number;
   showHeader: boolean;
+  showFooter: boolean;
   sortType?: SortType;
   defaultSortType?: SortType;
   sortColumn?: string;
@@ -34,6 +35,7 @@ interface CellDescriptorProps {
 interface CellDescriptor {
   columns: React.ReactNode[];
   headerCells: React.ReactNode[];
+  footerCells: React.ReactNode[];
   bodyCells: React.ReactNode[];
   hasCustomTreeCol: boolean;
   allColumnsWidth: number;
@@ -55,6 +57,7 @@ const useCellDescriptor = (props: CellDescriptorProps): CellDescriptor => {
     tableWidth,
     headerHeight,
     showHeader,
+    showFooter,
     sortType: sortTypeProp,
     defaultSortType,
     sortColumn,
@@ -157,11 +160,13 @@ const useCellDescriptor = (props: CellDescriptorProps): CellDescriptor => {
   let left = 0; // Cell left margin
   const headerCells: React.ReactNode[] = []; // Table header cell
   const bodyCells: React.ReactNode[] = []; // Table body cell
+  const footerCells: React.ReactNode[] = []; // Table body cell
 
   if (!children) {
     const cacheCell = {
       columns: [],
       headerCells,
+      footerCells,
       bodyCells,
       hasCustomTreeCol,
       allColumnsWidth: left
@@ -191,12 +196,13 @@ const useCellDescriptor = (props: CellDescriptorProps): CellDescriptor => {
         );
       }
 
-      if (columnChildren.length !== 2) {
+      if (columnChildren.length < 2) {
         throw new Error(`Component <HeaderCell> and <Cell> is required, column index: ${index} `);
       }
 
       const headerCell = columnChildren[0] as React.ReactElement<CellProps>;
       const cell = columnChildren[1] as React.ReactElement<CellProps>;
+      const footerCell = columnChildren[2] as React.ReactElement<CellProps>;
 
       let cellWidth = columnWidths.current?.[`${cell.props.dataKey}_${index}_width`] || width || 0;
 
@@ -246,6 +252,21 @@ const useCellDescriptor = (props: CellDescriptorProps): CellDescriptor => {
         headerCells.push(React.cloneElement(headerCell, { ...cellProps, ...headerCellProps }));
       }
 
+      if (showFooter) {
+        footerCells.push(
+          React.cloneElement(footerCell, {
+            ...cellProps,
+            ...{
+              index,
+              dataKey: cell.props.dataKey,
+              minWidth: column.props.minWidth,
+              sortColumn,
+              flexGrow
+            }
+          })
+        );
+      }
+
       bodyCells.push(React.cloneElement(cell, cellProps));
 
       left += cellWidth;
@@ -255,6 +276,7 @@ const useCellDescriptor = (props: CellDescriptorProps): CellDescriptor => {
   const cacheCell: CellDescriptor = {
     columns,
     headerCells,
+    footerCells,
     bodyCells,
     allColumnsWidth: left,
     hasCustomTreeCol

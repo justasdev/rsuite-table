@@ -236,6 +236,8 @@ export interface TableProps extends Omit<StandardProps, 'onScroll'> {
    * @deprecated use `ref` instead (see `ref.current.body`)
    **/
   bodyRef?: (ref: HTMLElement) => void;
+
+  footerHeight?: number;
 }
 
 interface TableRowProps extends RowProps {
@@ -301,6 +303,7 @@ const Table = React.forwardRef((props: TableProps, ref) => {
     onTouchStart,
     onTouchMove,
     onTouchEnd,
+    footerHeight = 0,
     ...rest
   } = props;
 
@@ -354,8 +357,10 @@ const Table = React.forwardRef((props: TableProps, ref) => {
   const mouseAreaRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
   const tableHeaderRef = useRef<HTMLDivElement>(null);
+  const tableFooterRef = useRef<HTMLDivElement>(null);
   const affixHeaderWrapperRef = useRef<HTMLDivElement>(null);
   const headerWrapperRef = useRef<HTMLDivElement>(null);
+  const footerWrapperRef = useRef<HTMLDivElement>(null);
   const tableBodyRef = useRef<HTMLDivElement>(null);
   const wheelWrapperRef = useRef<HTMLDivElement>(null);
   const scrollbarXRef = useRef<ScrollbarInstance>(null);
@@ -398,6 +403,7 @@ const Table = React.forwardRef((props: TableProps, ref) => {
     affixHeader,
     affixHorizontalScrollbar,
     headerHeight,
+    footerHeight,
     height,
     minHeight,
     autoHeight,
@@ -439,6 +445,7 @@ const Table = React.forwardRef((props: TableProps, ref) => {
     translateDOMPositionXY,
     wheelWrapperRef,
     headerWrapperRef,
+    footerWrapperRef,
     affixHeaderWrapperRef,
     tableHeaderRef,
     scrollX,
@@ -485,23 +492,25 @@ const Table = React.forwardRef((props: TableProps, ref) => {
     onTouchEnd
   });
 
-  const { headerCells, bodyCells, allColumnsWidth, hasCustomTreeCol } = useCellDescriptor({
-    children,
-    rtl,
-    mouseAreaRef,
-    tableRef,
-    minScrollX,
-    scrollX,
-    tableWidth,
-    headerHeight,
-    showHeader,
-    sortType: sortTypeProp,
-    defaultSortType,
-    sortColumn,
-    prefix,
-    onSortColumn,
-    rowHeight
-  });
+  const { headerCells, footerCells, bodyCells, allColumnsWidth, hasCustomTreeCol } =
+    useCellDescriptor({
+      children,
+      rtl,
+      mouseAreaRef,
+      tableRef,
+      minScrollX,
+      scrollX,
+      tableWidth,
+      headerHeight,
+      showHeader,
+      showFooter: !!footerHeight,
+      sortType: sortTypeProp,
+      defaultSortType,
+      sortColumn,
+      prefix,
+      onSortColumn,
+      rowHeight
+    });
 
   const colCounts = useRef(headerCells?.length || 0);
 
@@ -828,14 +837,31 @@ const Table = React.forwardRef((props: TableProps, ref) => {
     return renderRow(rowProps, cells, shouldRenderExpandedRow, rowData);
   };
 
-  const renderScrollbar = () => {
+  const renderVerticalScrollbar = () => {
     const height = getTableHeight();
-
     if (disabledScroll) {
       return null;
     }
+    return (
+      <Scrollbar
+        key="vertical-scrollbar"
+        vertical
+        tableId={id}
+        length={height - headerHeight - footerHeight}
+        scrollLength={contentHeight.current}
+        onScroll={onScrollVertical}
+        ref={scrollbarYRef}
+        style={{ bottom: 0 }}
+        // style={footerHeight ? { bottom: footerHeight } : undefined}
+      />
+    );
+  };
 
-    return [
+  const renderHorizontalScrollbar = () => {
+    if (disabledScroll) {
+      return null;
+    }
+    return (
       <Scrollbar
         key="scrollbar"
         tableId={id}
@@ -844,22 +870,13 @@ const Table = React.forwardRef((props: TableProps, ref) => {
         onScroll={onScrollHorizontal}
         scrollLength={contentWidth.current}
         ref={scrollbarXRef}
-      />,
-      <Scrollbar
-        key="vertical-scrollbar"
-        vertical
-        tableId={id}
-        length={height - headerHeight}
-        scrollLength={contentHeight.current}
-        onScroll={onScrollVertical}
-        ref={scrollbarYRef}
       />
-    ];
+    );
   };
 
   const renderTableBody = (bodyCells: any[], rowWidth: number) => {
     const height = getTableHeight();
-    const bodyHeight = height - headerHeight;
+    const bodyHeight = height - headerHeight - footerHeight;
     const bodyStyles = {
       top: headerHeight,
       height: bodyHeight
@@ -998,7 +1015,7 @@ const Table = React.forwardRef((props: TableProps, ref) => {
           addPrefix={prefix}
           loading={!!visibleRows.current?.length || loading}
         />
-        {renderScrollbar()}
+        {renderVerticalScrollbar()}
         <Loader
           locale={locale}
           loadAnimation={loadAnimation}
@@ -1021,30 +1038,64 @@ const Table = React.forwardRef((props: TableProps, ref) => {
     [hasCustomTreeCol, isTree, rtl, withClassPrefix]
   );
 
+  const renderTableFooter = (width: number) => {
+    const footer = !!footerHeight
+      ? renderRow(
+          {
+            rowRef: tableFooterRef,
+            className: prefix('footer-cell')
+          },
+          footerCells
+        )
+      : null;
+    return footer ? (
+      <div
+        role="rowgroup"
+        className={prefix('footer-row-wrapper')}
+        ref={footerWrapperRef}
+        style={{
+          height: footerHeight,
+          borderTop: '1px solid black',
+          minWidth: width,
+          position: 'absolute',
+          bottom: 0,
+          top: 'initial',
+          backgroundColor: 'black'
+        }}
+      >
+        {footer}
+      </div>
+    ) : null;
+  };
+
   return (
     <TableContext.Provider value={contextValue}>
-      <div
-        role={isTree ? 'treegrid' : 'grid'}
-        // The aria-rowcount is specified on the element with the table.
-        // Its value is an integer equal to the total number of rows available, including header rows.
-        aria-rowcount={data.length + 1}
-        aria-colcount={colCounts.current}
-        aria-busy={loading}
-        {...rest}
-        className={classes}
-        style={styles}
-        ref={tableRef}
-      >
-        {showHeader && renderTableHeader(headerCells, rowWidth)}
-        {children && renderTableBody(bodyCells, rowWidth)}
-        {showHeader && (
-          <MouseArea
-            ref={mouseAreaRef}
-            addPrefix={prefix}
-            headerHeight={headerHeight}
-            height={getTableHeight()}
-          />
-        )}
+      <div style={{ position: 'relative', overflow: 'hidden' }}>
+        <div
+          role={isTree ? 'treegrid' : 'grid'}
+          // The aria-rowcount is specified on the element with the table.
+          // Its value is an integer equal to the total number of rows available, including header rows.
+          aria-rowcount={data.length + 1}
+          aria-colcount={colCounts.current}
+          aria-busy={loading}
+          {...rest}
+          className={classes}
+          style={styles}
+          ref={tableRef}
+        >
+          {showHeader && renderTableHeader(headerCells, rowWidth)}
+          {children && renderTableBody(bodyCells, rowWidth)}
+          {showHeader && (
+            <MouseArea
+              ref={mouseAreaRef}
+              addPrefix={prefix}
+              headerHeight={headerHeight}
+              height={getTableHeight()}
+            />
+          )}
+        </div>
+        {renderHorizontalScrollbar()}
+        {renderTableFooter(rowWidth)}
       </div>
     </TableContext.Provider>
   );

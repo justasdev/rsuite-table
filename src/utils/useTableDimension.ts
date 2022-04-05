@@ -21,6 +21,7 @@ interface TableDimensionProps {
   affixHeader?: boolean | number;
   affixHorizontalScrollbar?: boolean | number;
   headerHeight: number;
+  footerHeight: number;
   autoHeight?: boolean;
   fillHeight?: boolean;
   children?: React.ReactNode;
@@ -48,6 +49,7 @@ const useTableDimension = (props: TableDimensionProps) => {
     affixHeader,
     affixHorizontalScrollbar,
     headerHeight,
+    footerHeight,
     height: heightProp,
     autoHeight,
     minHeight,
@@ -74,7 +76,7 @@ const useTableDimension = (props: TableDimensionProps) => {
   const tableOffset = useRef<ElementOffset | null>(null);
 
   const [tableHeight, setTableHeight] = useState(heightProp || 0);
-
+  const tableHeightWithoutFooter = tableHeight - footerHeight;
   const calculateTableContextHeight = useCallback(() => {
     const prevContentHeight = contentHeight.current;
     const table = tableRef?.current;
@@ -97,12 +99,12 @@ const useTableDimension = (props: TableDimensionProps) => {
        *  But it will only be calculated when there is a horizontal scroll bar (contentWidth > tableWidth).
        */
       minScrollY.current =
-        -(nextContentHeight - tableHeight) -
+        -(nextContentHeight - tableHeightWithoutFooter) -
         (contentWidth.current > tableWidth.current ? SCROLLBAR_WIDTH : 0);
     }
 
     // If the height of the content area is less than the height of the table, the vertical scroll bar is reset.
-    if (nextContentHeight < tableHeight) {
+    if (nextContentHeight < tableHeightWithoutFooter) {
       onTableScroll?.({ y: 0 });
     }
 
@@ -110,7 +112,7 @@ const useTableDimension = (props: TableDimensionProps) => {
     // When Table is set to virtualized, the logic will be entered every time the wheel event is triggered
     // to avoid resetting the scroll bar after scrolling to the bottom, so add the SCROLLBAR_WIDTH value.
     if (
-      Math.abs(scrollY.current) + tableHeight - headerHeight >
+      Math.abs(scrollY.current) + tableHeightWithoutFooter - headerHeight >
       nextContentHeight + SCROLLBAR_WIDTH
     ) {
       onTableScroll?.({ y: scrollY.current });
@@ -199,12 +201,12 @@ const useTableDimension = (props: TableDimensionProps) => {
     // When fillHeight is set, a resize listener is added to the table container.
     // And get the height of the container as the height of the table.
     if (fillHeight && tableRef?.current) {
-      setTableHeight(getHeight(tableRef.current.parentNode as Element));
+      setTableHeight(getHeight(tableRef?.current.parentNode?.parentNode as Element));
       containerResizeObserver.current = new ResizeObserver(entries => {
         setTableHeight(entries[0].contentRect.height);
         calculateTableWidth(entries[0].contentRect.width);
       });
-      containerResizeObserver.current.observe(tableRef?.current?.parentNode as Element);
+      containerResizeObserver.current.observe(tableRef?.current?.parentNode?.parentNode as Element);
     } else {
       resizeObserver.current = new ResizeObserver(entries => {
         calculateTableWidth(entries[0].contentRect.width);
