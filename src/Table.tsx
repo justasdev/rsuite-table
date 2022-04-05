@@ -1040,6 +1040,7 @@ const Table = React.forwardRef((props: TableProps, ref) => {
   );
 
   const renderTableFooter = (width: number) => {
+    // TODO: support fixed columns
     const footer = !!footerHeight
       ? renderRow(
           {
