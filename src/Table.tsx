@@ -1055,12 +1055,10 @@ const Table = React.forwardRef((props: TableProps, ref) => {
         ref={footerWrapperRef}
         style={{
           height: footerHeight,
-          borderTop: '1px solid black',
           minWidth: width,
           position: 'absolute',
           bottom: emptySpaceBelow,
-          top: 'initial',
-          backgroundColor: 'black'
+          top: 'initial'
         }}
       >
         {footer}
