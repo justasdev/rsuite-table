@@ -311,10 +311,11 @@ const Table = React.forwardRef((props: TableProps, ref) => {
     throw new Error('The `rowKey` is required when set isTree');
   }
 
-  const { withClassPrefix, prefix } = useClassNames(
-    classPrefix || 'table',
-    typeof classPrefix !== 'undefined'
-  );
+  const {
+    withClassPrefix,
+    merge: mergeCls,
+    prefix
+  } = useClassNames(classPrefix || 'table', typeof classPrefix !== 'undefined');
 
   // Use `forceUpdate` to force the component to re-render after manipulating the DOM.
   const [, forceUpdate] = useReducer(x => x + 1, 0);
@@ -1068,7 +1069,10 @@ const Table = React.forwardRef((props: TableProps, ref) => {
 
   return (
     <TableContext.Provider value={contextValue}>
-      <div className={className} style={{ position: 'relative', overflow: 'hidden' }}>
+      <div
+        className={mergeCls(className, prefix('wrapper'))}
+        style={{ position: 'relative', overflow: 'hidden' }}
+      >
         <div
           role={isTree ? 'treegrid' : 'grid'}
           // The aria-rowcount is specified on the element with the table.
