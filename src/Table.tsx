@@ -311,11 +311,10 @@ const Table = React.forwardRef((props: TableProps, ref) => {
     throw new Error('The `rowKey` is required when set isTree');
   }
 
-  const {
-    withClassPrefix,
-    merge: mergeCls,
-    prefix
-  } = useClassNames(classPrefix || 'table', typeof classPrefix !== 'undefined');
+  const { withClassPrefix, prefix } = useClassNames(
+    classPrefix || 'table',
+    typeof classPrefix !== 'undefined'
+  );
 
   // Use `forceUpdate` to force the component to re-render after manipulating the DOM.
   const [, forceUpdate] = useReducer(x => x + 1, 0);
@@ -540,17 +539,14 @@ const Table = React.forwardRef((props: TableProps, ref) => {
 
   const rowWidth = allColumnsWidth > tableWidth.current ? allColumnsWidth : tableWidth.current;
 
-  const classes = mergeCls(
-    className,
-    withClassPrefix({
-      bordered,
-      hover,
-      loading,
-      treetable: isTree,
-      'word-wrap': wordWrap,
-      'cell-bordered': cellBordered
-    })
-  );
+  const classes = withClassPrefix({
+    bordered,
+    hover,
+    loading,
+    treetable: isTree,
+    'word-wrap': wordWrap,
+    'cell-bordered': cellBordered
+  });
 
   const styles = {
     width: widthProp || 'auto',
@@ -1074,7 +1070,7 @@ const Table = React.forwardRef((props: TableProps, ref) => {
 
   return (
     <TableContext.Provider value={contextValue}>
-      <div style={{ position: 'relative', overflow: 'hidden' }}>
+      <div className={className} style={{ position: 'relative', overflow: 'hidden' }}>
         <div
           role={isTree ? 'treegrid' : 'grid'}
           // The aria-rowcount is specified on the element with the table.
@@ -1098,8 +1094,8 @@ const Table = React.forwardRef((props: TableProps, ref) => {
             />
           )}
         </div>
-        {renderHorizontalScrollbar()}
         {renderTableFooter(rowWidth)}
+        {renderHorizontalScrollbar()}
       </div>
     </TableContext.Provider>
   );
